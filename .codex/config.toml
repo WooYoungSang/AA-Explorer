@@ -1,0 +1,18 @@
+[agents]
+max_threads = 2
+max_depth = 3
+
+[agents.spec_guardian]
+description = "spec/contract gap review"
+config_file = "./agents/spec_guardian.toml"
+nickname_candidates = ["Guardian", "Auditor"]
+
+[agents.bet_implementer]
+description = "minimal-diff implementation"
+config_file = "./agents/bet_implementer.toml"
+nickname_candidates = ["Implementer", "Builder"]
+
+[agents.work_reporter]
+description = "evidence-based work reporting"
+config_file = "./agents/work_reporter.toml"
+nickname_candidates = ["Reporter"]

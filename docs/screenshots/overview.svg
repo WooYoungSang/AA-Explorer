@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Base AA Explorer dashboard placeholder</title>
+  <desc id="desc">Placeholder illustration for the Base AA Explorer dashboard screenshot.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#111b44"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="48" y="48" width="1184" height="624" rx="24" fill="#ffffff" opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+  <text x="96" y="126" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700">Base AA Explorer</text>
+  <text x="96" y="164" fill="#9fb2ff" font-family="Inter, Arial, sans-serif" font-size="20">Dashboard screenshot placeholder</text>
+
+  <rect x="96" y="214" width="240" height="110" rx="16" fill="#0052FF" opacity="0.88"/>
+  <rect x="356" y="214" width="240" height="110" rx="16" fill="#5b7cff" opacity="0.72"/>
+  <rect x="616" y="214" width="240" height="110" rx="16" fill="#7a63ff" opacity="0.72"/>
+  <rect x="876" y="214" width="240" height="110" rx="16" fill="#4a90e2" opacity="0.72"/>
+
+  <rect x="96" y="360" width="600" height="248" rx="18" fill="#ffffff" opacity="0.08"/>
+  <rect x="728" y="360" width="388" height="248" rx="18" fill="#ffffff" opacity="0.08"/>
+
+  <polyline points="136,540 220,500 304,522 388,450 472,470 556,410 640,434"
+    fill="none" stroke="#77a2ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="860" cy="474" r="74" fill="none" stroke="#0052FF" stroke-width="28"/>
+  <circle cx="860" cy="474" r="74" fill="none" stroke="#7a63ff" stroke-width="28" stroke-dasharray="150 500" stroke-linecap="round"/>
+
+  <text x="96" y="644" fill="#a9b7e8" font-family="Inter, Arial, sans-serif" font-size="18">
+    Replace this placeholder with a real dashboard screenshot before submission.
+  </text>
+</svg>

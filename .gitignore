@@ -1,0 +1,13 @@
+.env
+*.key
+node_modules/
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+.next/
+dist/
+build/
+data/*.db
+
+.omx/
