@@ -71,7 +71,7 @@ This repository is currently **spec-first**. The canonical local bootstrap lives
 sed -n '1,220p' BOOTSTRAP.md
 
 # 2) After scaffolding the backend, run backend verification
-cd backend && pip install -e ".[dev]" && pytest -q && ruff check .
+cd backend && poetry env use python3.11 && poetry install --with dev && poetry run pytest -q && poetry run ruff check .
 
 # 3) After scaffolding the frontend, run frontend verification
 cd ../frontend && npm run build && npm test
@@ -82,7 +82,7 @@ cd ../frontend && npm run build && npm test
 - Node.js **18+**
 - Python **3.11+**
 - Git
-- `uv` recommended for Python environment setup
+- Poetry **2.2+** for backend dependency management
 
 ### Environment variables
 
@@ -163,19 +163,19 @@ Operationally, the project also targets:
 ### Build
 
 ```bash
-cd backend && pip install -e ".[dev]" && cd ../frontend && npm run build
+cd backend && poetry install --with dev && cd ../frontend && npm run build
 ```
 
 ### Test
 
 ```bash
-cd backend && pytest && cd ../frontend && npm test
+cd backend && poetry run pytest && cd ../frontend && npm test
 ```
 
 ### Lint
 
 ```bash
-cd backend && ruff check . && cd ../frontend && npx eslint .
+cd backend && poetry run ruff check . && cd ../frontend && npx eslint .
 ```
 
 ### Planned MVP structure

@@ -1,41 +1,39 @@
 # Spec Index — grant-base-aa-explorer
 
 > WARVIS SSOT: Obsidian `02-Projects/grant-base-aa-explorer/`
-> Indexed: Neo4j + Qdrant + MinIO via `devos_index_project`
+> Repo status: bootstrap baseline scaffold + harness mirror
 
-## ADR (Architecture Decision Records)
-| ID | Title | Path |
-|----|-------|------|
-| ADR-AA-Explorer-001 | AA Explorer tech stack and architecture decision | ADR/ADR-AA-Explorer-001.md |
+## Canonical SSOT location
 
-**Decision**: Python (FastAPI) + TypeScript (Next.js 14) + PostgreSQL/TimescaleDB. WSS-based EntryPoint indexer.
+The authoritative pitch, bet, ADR, FR, NFR, and UOW documents currently live in the WARVIS Obsidian vault:
 
-## FR (Functional Requirements)
-| ID | Title | Path |
-|----|-------|------|
-| FR-AA-Explorer-001 | Core data collection pipeline | FR/FR-AA-Explorer-001.md |
-| FR-AA-Explorer-002 | Dashboard and API | FR/FR-AA-Explorer-002.md |
+- `02-Projects/grant-base-aa-explorer/PITCH-Base-AA-Explorer.md`
+- `01-GTD/Bets/BET-SMALL-GRANT-aa-explorer.md`
+- `02-Projects/grant-base-aa-explorer/ADR/ADR-AA-Explorer-001.md`
+- `02-Projects/grant-base-aa-explorer/FR/FR-AA-Explorer-001.md`
+- `02-Projects/grant-base-aa-explorer/FR/FR-AA-Explorer-002.md`
+- `02-Projects/grant-base-aa-explorer/NFR/NFR-AA-Explorer-001.md`
+- `02-Projects/grant-base-aa-explorer/UOW/`
+- `02-Projects/grant-base-aa-explorer/BOOTSTRAP.md`
 
-## NFR (Non-Functional Requirements)
-| ID | Title | Quality Attribute | Thresholds |
-|----|-------|-------------------|------------|
-| NFR-AA-Explorer-001 | Response time and performance SLO | performance | data_freshness ≤ 5 minutes / dashboard_lcp ≤ 2 seconds |
+## Accepted lock-in facts
 
-## UOW (Units of Work)
-| ID | Title | Risk | Status |
-|----|-------|------|--------|
-| UOW-001 | S1-Data: Build the EntryPoint WSS-based UserOp collection pipeline | R1 | initialized |
-| UOW-002 | S2-API: Build FastAPI endpoints | R1 | initialized |
-| UOW-003 | S3-UI: Build the Next.js dashboard | R1 | initialized |
+- Problem: Base AA ecosystem visibility is missing for UserOps, paymasters, and smart accounts.
+- Appetite: Small, one sprint.
+- No-Go: no signing, key management, multichain, historical backfill, bundler integration, auth, or EntryPoint v0.6.
+- Acceptance: reflect UserOps within 5 minutes and keep dashboard load under 2 seconds.
 
-## Acceptance Criteria
-- Confirm real-time UserOp collection within 5 minutes
-- Dashboard load time < 2 seconds
+## Architecture direction
 
-## Kill Condition
-> Base EntryPoint ABI becomes inaccessible, or the WSS connection keeps failing.
+- MVP stack: Python (FastAPI) + TypeScript (Next.js 14) + SQLite
+- Data flow: Base EntryPoint v0.7 → indexer → decoder → classifier → aggregates → API → dashboard
+- Reliability: reconnect-first with HTTP fallback when WSS degrades
 
-## WARVIS Context Query
-```
-devos_retrieve_context(project_id="grant-base-aa-explorer", query="UoW list ADR decisions")
-```
+## Local repo mirror
+
+This repository now contains the runnable bootstrap baseline used for S0 preflight:
+
+- `backend/` — FastAPI baseline scaffold
+- `frontend/` — Next.js baseline scaffold
+- `BOOTSTRAP.md` — local setup and verification guide
+- `.agents/`, `.claude/`, `.codex/` — agent harness artifacts

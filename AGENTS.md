@@ -10,9 +10,9 @@ repo_root: "."
 
 lang: "Python + TypeScript"
 tech_stack: "Python (FastAPI) + TypeScript (Next.js 14) + SQLite (MVP)"
-build_cmd: "cd backend && pip install -e '.[dev]' && cd ../frontend && npm run build"
-test_cmd: "cd backend && pytest && cd ../frontend && npm test"
-lint_cmd: "cd backend && ruff check . && cd ../frontend && npx eslint ."
+build_cmd: "cd backend && poetry install --with dev && cd ../frontend && npm run build"
+test_cmd: "cd backend && poetry run pytest && cd ../frontend && npm test"
+lint_cmd: "cd backend && poetry run ruff check . && cd ../frontend && npx eslint ."
 
 no_touch: ["node_modules/", ".env", "*.key"]
 max_new_files_per_task: 5
@@ -76,12 +76,18 @@ Kill condition triggered, a No-Go becomes mandatory, `no_touch` must be violated
 
 - `AGENTS.md` = **constitution** (this file)
 - `.agents/skills/` = **procedures**
-  - `bootstrap` — initialize the project, install dependencies, and verify
-  - `build-verify` — integrated build/test/lint verification
-  - `bet-kickoff` — Preflight + Shape
-  - `build-report` — Build report
-  - `pattern-extract` — Reflect pattern extraction
-  - `grant-submit` — submission prep and release procedure
+  - `bootstrap` — workspace bootstrap + S0 preflight verification
+  - `bet-kickoff` — bet kickoff + sprint planning/backlog initialization
+  - `build-verify` — integrated build/test/lint + acceptance verification
+  - `build-report` — Hill Chart / checkpoint / ship-or-cut reporting
+  - `grant-readme` — grant-reviewer-optimized README generation
+  - `grant-submit` — ship verdict + grant submission workflow
+  - `pattern-extract` — reflect/retro pattern extraction
+  - `s1-data-pipeline` — UOW-001 data pipeline execution
+  - `s2-api-layer` — UOW-002 API layer execution
+  - `s3-dashboard-ship` — UOW-003 dashboard + ship execution
+  - `sprint-execute` — SCTCV task execution loop
+  - `sprint-retro` — sprint retrospective + carry-over capture
 - `.codex/agents/` = **role separation**
   - `spec_guardian` — spec review (read-only)
   - `bet_implementer` — minimal-diff implementation (write)

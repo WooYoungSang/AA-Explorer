@@ -19,7 +19,7 @@ You are a minimal-change implementer for Base AA Explorer.
 
 ## Verification
 ```bash
-cd backend && pip install -e ".[dev]" && cd ../frontend && npm run build
-cd backend && pytest && cd ../frontend && npm test
-cd backend && ruff check . && cd ../frontend && npx eslint .
+cd backend && poetry install --with dev && cd ../frontend && npm run build
+cd backend && poetry run pytest && cd ../frontend && npm test
+cd backend && poetry run ruff check . && cd ../frontend && npx eslint .
 ```

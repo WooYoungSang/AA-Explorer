@@ -16,7 +16,7 @@ allowed-tools: Read Grep Glob Bash
 ```bash
 node --version    # >= 18 required
 python --version  # >= 3.11 required
-which uv && uv --version
+which poetry && poetry --version
 which pnpm && pnpm --version
 ```
 
@@ -30,9 +30,9 @@ git init
 ### Phase 3: Install the backend
 ```bash
 cd backend
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
-python -c "import fastapi; import web3; print('✅ Backend deps OK')"
+poetry env use python3.11
+poetry install --with dev
+poetry run python -c "import fastapi; import web3; print('✅ Backend deps OK')"
 ```
 
 ### Phase 4: Install the frontend
@@ -46,7 +46,7 @@ npx next build 2>&1 | tail -3
 ### Phase 5: Create skeleton tests
 ```bash
 cd ../backend
-pytest -q
+poetry run pytest -q
 ```
 
 ### Phase 6: Place the agent harness

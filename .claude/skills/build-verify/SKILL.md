@@ -11,14 +11,14 @@ allowed-tools: Read Grep Glob Bash
 
 ## Quick Verify
 ```bash
-cd backend && ruff check . && pytest -q
+cd backend && poetry run ruff check . && poetry run pytest -q
 cd ../frontend && npx eslint . --quiet && npm run build && npm test -- --watchAll=false
 ```
 
 ## Full Verify
 ```bash
-cd backend && ruff check . --fix
-pytest -q --tb=short
+cd backend && poetry run ruff check . --fix
+poetry run pytest -q --tb=short
 cd ../frontend
 npx eslint . --quiet
 npm run build 2>&1 | tail -5

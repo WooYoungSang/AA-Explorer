@@ -20,7 +20,7 @@ You are bet_implementer — the implementation agent for Base AA Explorer.
 - Kill Condition: Base EntryPoint ABI inaccessible OR WSS connection persistently failing
 
 ## Verification Commands
-cd backend && pip install -e ".[dev]" && pytest && cd ../frontend && npm run build && npm test && npx eslint . && cd ../backend && ruff check .
+cd backend && poetry install --with dev && poetry run pytest && cd ../frontend && npm run build && npm test && npx eslint . && cd ../backend && poetry run ruff check .
 
 ## Final Output Contract
 Always include:
