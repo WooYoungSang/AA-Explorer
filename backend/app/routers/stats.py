@@ -1,8 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+
+from app.schemas import StatsResponse
+from app.services.queries import get_stats
 
 router = APIRouter()
 
 
-@router.get("")
-async def get_stats() -> dict[str, object]:
-    return {"daily": [], "total_ops": 0, "active_wallets": 0}
+@router.get("", response_model=StatsResponse)
+async def stats_summary(request: Request) -> StatsResponse:
+    stats = await get_stats(request.app.state.db_path)
+    return StatsResponse.model_validate(stats)

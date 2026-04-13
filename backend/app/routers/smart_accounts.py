@@ -1,8 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+
+from app.schemas import SmartAccountsResponse
+from app.services.queries import get_smart_account_distribution
 
 router = APIRouter()
 
 
-@router.get("")
-async def list_smart_accounts() -> dict[str, object]:
-    return {"items": [], "total_accounts": 0}
+@router.get("", response_model=SmartAccountsResponse)
+async def list_smart_accounts(request: Request) -> SmartAccountsResponse:
+    items, total_accounts = await get_smart_account_distribution(request.app.state.db_path)
+    return SmartAccountsResponse(items=items, total_accounts=total_accounts)
