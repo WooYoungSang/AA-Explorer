@@ -28,12 +28,12 @@ async def test_userops_endpoint(api_client) -> None:
                 "day": "2024-03-10",
                 "sender": "0x" + "22" * 20,
                 "paymaster": "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad",
-                "paymaster_label": "Pimlico Paymaster",
+                "paymaster_label": "Other",
                 "factory": "0x0ba5ed0c6aa8c49038f819e587e2633c4a9f428a",
                 "smart_account_label": "Coinbase Smart Wallet Factory",
-                "nonce": 3,
+                "nonce": "3",
                 "success": True,
-                "actual_gas_cost": 505,
+                "actual_gas_cost": "505",
                 "actual_gas_used": 606,
                 "calldata_hash": "0x" + "cd" * 32,
             },
@@ -48,10 +48,10 @@ async def test_userops_endpoint(api_client) -> None:
                 "paymaster": None,
                 "paymaster_label": "Other",
                 "factory": "0x5de4839a76cf55d0c90e2061ef4386d962e15ae3",
-                "smart_account_label": "Safe Factory",
-                "nonce": 2,
+                "smart_account_label": "Other",
+                "nonce": "2",
                 "success": False,
-                "actual_gas_cost": 303,
+                "actual_gas_cost": "303",
                 "actual_gas_used": 404,
                 "calldata_hash": "0x" + "bc" * 32,
             },
@@ -67,9 +67,9 @@ async def test_userops_endpoint(api_client) -> None:
                 "paymaster_label": "Coinbase Paymaster",
                 "factory": "0x0ba5ed0c6aa8c49038f819e587e2633c4a9f428a",
                 "smart_account_label": "Coinbase Smart Wallet Factory",
-                "nonce": 1,
+                "nonce": "1",
                 "success": True,
-                "actual_gas_cost": 101,
+                "actual_gas_cost": "101",
                 "actual_gas_used": 202,
                 "calldata_hash": "0x" + "ab" * 32,
             },
@@ -117,7 +117,7 @@ async def test_stats_endpoint(api_client) -> None:
                 "unique_senders": 2,
                 "sponsored_ops": 1,
                 "unique_paymasters": 1,
-                "gas_cost": 808,
+                "gas_cost": "808",
                 "gas_used": 1010,
             },
             {
@@ -127,7 +127,7 @@ async def test_stats_endpoint(api_client) -> None:
                 "unique_senders": 1,
                 "sponsored_ops": 1,
                 "unique_paymasters": 1,
-                "gas_cost": 101,
+                "gas_cost": "101",
                 "gas_used": 202,
             },
         ],
@@ -151,7 +151,7 @@ async def test_paymasters_endpoint(api_client) -> None:
             },
             {
                 "address": "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad",
-                "label": "Pimlico Paymaster",
+                "label": "Other",
                 "sponsored_ops": 1,
                 "percentage": 50.0,
             },
@@ -175,10 +175,77 @@ async def test_smart_accounts_endpoint(api_client) -> None:
             },
             {
                 "factory": "0x5de4839a76cf55d0c90e2061ef4386d962e15ae3",
-                "label": "Safe Factory",
+                "label": "Other",
                 "account_count": 1,
                 "percentage": 50.0,
             },
         ],
         "total_accounts": 2,
     }
+
+
+PIMLICO_PAYMASTER = "0x777777777777AeC03fd955926DbF81597e66834C"
+SAFE_FACTORY = "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67"
+BIG = 2**256 - 1
+
+
+@pytest.fixture()
+async def big_value_client(tmp_path):
+    from app.services.pipeline import aggregate_daily_stats, store_user_op
+
+    db_path = tmp_path / "big.db"
+    for i, gas in enumerate((BIG // 2, BIG // 2 + 1)):
+        await store_user_op(
+            db_path,
+            {
+                "user_op_hash": "0x" + f"{i + 1:02x}" * 32,
+                "tx_hash": "0x" + "aa" * 32,
+                "block_number": 10 + i,
+                "log_index": i,
+                "timestamp": 1_710_000_000,
+                "sender": "0x" + "22" * 20,
+                "paymaster": PIMLICO_PAYMASTER,
+                "factory": SAFE_FACTORY,
+                "nonce": BIG - i,
+                "success": True,
+                "actual_gas_cost": gas,
+                "actual_gas_used": 1,
+            },
+        )
+    await aggregate_daily_stats(db_path)
+    original = getattr(app.state, "db_path", None)
+    app.state.db_path = db_path
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+    app.state.db_path = original
+
+
+@pytest.mark.asyncio
+async def test_api_nonce_is_decimal_string(big_value_client) -> None:
+    items = (await big_value_client.get("/api/userops")).json()["items"]
+    assert {item["nonce"] for item in items} == {str(BIG), str(BIG - 1)}
+    detail = await big_value_client.get("/api/userops/" + "0x" + "01" * 32)
+    assert detail.json()["nonce"] == str(BIG)
+
+
+@pytest.mark.asyncio
+async def test_api_gas_costs_are_decimal_strings(big_value_client) -> None:
+    items = (await big_value_client.get("/api/userops")).json()["items"]
+    assert {item["actual_gas_cost"] for item in items} == {str(BIG // 2), str(BIG // 2 + 1)}
+    daily = (await big_value_client.get("/api/stats")).json()["daily"]
+    assert daily[0]["gas_cost"] == str(BIG)
+    assert isinstance(daily[0]["gas_used"], int)
+
+
+@pytest.mark.asyncio
+async def test_api_shows_verified_pimlico_and_safe_labels(big_value_client) -> None:
+    items = (await big_value_client.get("/api/userops")).json()["items"]
+    assert {item["paymaster_label"] for item in items} == {"Pimlico Paymaster"}
+    assert {item["smart_account_label"] for item in items} == {"Safe Factory"}
+    pm = (await big_value_client.get("/api/paymasters")).json()["items"]
+    assert [(i["address"], i["label"]) for i in pm] == [
+        (PIMLICO_PAYMASTER.lower(), "Pimlico Paymaster")
+    ]
+    sa = (await big_value_client.get("/api/smart-accounts")).json()["items"]
+    assert [(i["factory"], i["label"]) for i in sa] == [(SAFE_FACTORY.lower(), "Safe Factory")]

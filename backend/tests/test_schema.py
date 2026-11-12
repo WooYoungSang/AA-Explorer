@@ -45,3 +45,15 @@ async def test_schema_creates_tables_and_indexes(tmp_path) -> None:
             "idx_user_ops_paymaster_label",
             "idx_user_ops_smart_account_label",
         }.issubset(indexes)
+
+
+@pytest.mark.asyncio
+async def test_256_bit_columns_are_text(tmp_path) -> None:
+    db_path = tmp_path / "aa_explorer.db"
+    await ensure_schema(db_path)
+    with sqlite3.connect(db_path) as conn:
+        ops = {r[1]: r[2] for r in conn.execute("PRAGMA table_info(user_ops)")}
+        daily = {r[1]: r[2] for r in conn.execute("PRAGMA table_info(daily_stats)")}
+    assert ops["nonce"] == "TEXT" and ops["actual_gas_cost"] == "TEXT"
+    assert daily["gas_cost"] == "TEXT"
+    assert ops["actual_gas_used"] == "INTEGER" and daily["gas_used"] == "INTEGER"

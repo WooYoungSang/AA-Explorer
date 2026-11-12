@@ -19,9 +19,9 @@ class UserOp(APIModel):
     paymaster_label: str
     factory: str | None = None
     smart_account_label: str
-    nonce: int
+    nonce: str
     success: bool
-    actual_gas_cost: int
+    actual_gas_cost: str
     actual_gas_used: int
     calldata_hash: str | None = None
 
@@ -39,7 +39,7 @@ class DailyStat(APIModel):
     unique_senders: int
     sponsored_ops: int
     unique_paymasters: int
-    gas_cost: int
+    gas_cost: str
     gas_used: int
 
 
