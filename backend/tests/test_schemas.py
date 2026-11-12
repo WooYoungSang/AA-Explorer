@@ -23,9 +23,9 @@ def test_userops_response_serializes_contract_shape() -> None:
                 paymaster_label="Coinbase Paymaster",
                 factory="0x" + "44" * 20,
                 smart_account_label="Coinbase Smart Wallet Factory",
-                nonce=7,
+                nonce="7",
                 success=True,
-                actual_gas_cost=100,
+                actual_gas_cost="100",
                 actual_gas_used=200,
                 calldata_hash="0x" + "55" * 32,
             )
@@ -51,7 +51,7 @@ def test_stats_response_preserves_daily_metrics() -> None:
                 unique_senders=2,
                 sponsored_ops=1,
                 unique_paymasters=1,
-                gas_cost=111,
+                gas_cost="111",
                 gas_used=222,
             )
         ],
@@ -81,3 +81,17 @@ def test_distribution_models_keep_percentage_fields() -> None:
 
     assert paymaster.model_dump()["percentage"] == 80.0
     assert smart_account.model_dump()["account_count"] == 2
+
+
+def test_256_bit_values_are_decimal_strings() -> None:
+    big = str(2**256 - 1)
+    op = UserOp(
+        user_op_hash="0x" + "11" * 32, tx_hash="0x" + "aa" * 32, block_number=1, log_index=0,
+        timestamp=1, day="2024-03-09", sender="0x" + "22" * 20, paymaster_label="Other",
+        smart_account_label="Other", nonce=big, success=True, actual_gas_cost=big,
+        actual_gas_used=2,
+    )
+    assert op.model_dump()["nonce"] == big
+    assert op.model_dump()["actual_gas_cost"] == big
+    assert UserOp.model_fields["actual_gas_used"].annotation is int
+    assert DailyStat.model_fields["gas_cost"].annotation is str

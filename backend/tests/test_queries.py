@@ -44,7 +44,7 @@ async def test_get_paymaster_distribution_computes_percentages(seeded_db_path) -
     assert total_sponsored == 2
     assert [item["label"] for item in items] == [
         "Coinbase Paymaster",
-        "Pimlico Paymaster",
+        "Other",
     ]
     assert all(item["percentage"] == 50.0 for item in items)
 
@@ -56,4 +56,4 @@ async def test_get_smart_account_distribution_uses_distinct_accounts(seeded_db_p
     assert total_accounts == 2
     assert items[0]["label"] == "Coinbase Smart Wallet Factory"
     assert items[0]["account_count"] == 1
-    assert items[1]["label"] == "Safe Factory"
+    assert items[1]["label"] == "Other"

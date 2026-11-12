@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS user_ops (
     sender TEXT NOT NULL,
     paymaster TEXT,
     factory TEXT,
-    nonce INTEGER NOT NULL,
+    nonce TEXT NOT NULL,
     success INTEGER NOT NULL,
-    actual_gas_cost INTEGER NOT NULL,
+    actual_gas_cost TEXT NOT NULL,
     actual_gas_used INTEGER NOT NULL,
     calldata_hash TEXT,
     paymaster_label TEXT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     unique_senders INTEGER NOT NULL,
     sponsored_ops INTEGER NOT NULL,
     unique_paymasters INTEGER NOT NULL,
-    gas_cost INTEGER NOT NULL,
+    gas_cost TEXT NOT NULL,
     gas_used INTEGER NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -91,32 +91,18 @@ ON CONFLICT(user_op_hash) DO UPDATE SET
 """
 
 
-AGGREGATE_DAILY_STATS_SQL = """
-INSERT INTO daily_stats (
-    day,
-    total_ops,
-    success_ops,
-    unique_senders,
-    sponsored_ops,
-    unique_paymasters,
-    gas_cost,
-    gas_used,
-    updated_at
-)
-SELECT
-    day,
-    COUNT(*) AS total_ops,
-    SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS success_ops,
-    COUNT(DISTINCT sender) AS unique_senders,
-    SUM(CASE WHEN paymaster IS NOT NULL AND paymaster != '' THEN 1 ELSE 0 END) AS sponsored_ops,
-    COUNT(
-        DISTINCT CASE WHEN paymaster IS NOT NULL AND paymaster != '' THEN paymaster END
-    ) AS unique_paymasters,
-    COALESCE(SUM(actual_gas_cost), 0) AS gas_cost,
-    COALESCE(SUM(actual_gas_used), 0) AS gas_used,
-    CURRENT_TIMESTAMP AS updated_at
+# SQLite SUM() raises "integer overflow" past 2^63, so gas_cost is summed in Python.
+DAY_ROWS_SQL = """
+SELECT sender, paymaster, success, actual_gas_cost, actual_gas_used
 FROM user_ops
-GROUP BY day
+WHERE day = ?
+"""
+
+UPSERT_DAILY_STATS_SQL = """
+INSERT INTO daily_stats (
+    day, total_ops, success_ops, unique_senders, sponsored_ops,
+    unique_paymasters, gas_cost, gas_used, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 ON CONFLICT(day) DO UPDATE SET
     total_ops = excluded.total_ops,
     success_ops = excluded.success_ops,
@@ -231,9 +217,9 @@ async def store_user_op(db_path: Path | str, record: dict[str, Any]) -> dict[str
                 prepared["sender"],
                 prepared["paymaster"],
                 prepared["factory"],
-                prepared["nonce"],
+                str(prepared["nonce"]),
                 prepared["success"],
-                prepared["actual_gas_cost"],
+                str(prepared["actual_gas_cost"]),
                 prepared["actual_gas_used"],
                 prepared["calldata_hash"],
                 prepared["paymaster_label"],
@@ -241,14 +227,43 @@ async def store_user_op(db_path: Path | str, record: dict[str, Any]) -> dict[str
                 prepared["raw_log"],
             ),
         )
+        await _recompute_day(db, prepared["day"])
         await db.commit()
     return prepared
+
+
+async def _recompute_day(db: aiosqlite.Connection, day: str) -> None:
+    """Rebuild one daily_stats row from user_ops; drop it when the day has no ops."""
+    cursor = await db.execute(DAY_ROWS_SQL, (day,))
+    rows = await cursor.fetchall()
+    if not rows:
+        await db.execute("DELETE FROM daily_stats WHERE day = ?", (day,))
+        return
+    sponsored = [row[1] for row in rows if row[1]]
+    await db.execute(
+        UPSERT_DAILY_STATS_SQL,
+        (
+            day,
+            len(rows),
+            sum(1 for row in rows if row[2] == 1),
+            len({row[0] for row in rows}),
+            len(sponsored),
+            len(set(sponsored)),
+            str(sum(int(row[3]) for row in rows)),
+            sum(row[4] for row in rows),
+        ),
+    )
 
 
 async def aggregate_daily_stats(db_path: Path | str = DB_PATH) -> list[dict[str, Any]]:
     path = await ensure_schema(db_path)
     async with aiosqlite.connect(path) as db:
-        await db.execute(AGGREGATE_DAILY_STATS_SQL)
+        cursor = await db.execute("SELECT DISTINCT day FROM user_ops")
+        days = {row[0] for row in await cursor.fetchall()}
+        cursor = await db.execute("SELECT day FROM daily_stats")
+        days |= {row[0] for row in await cursor.fetchall()}
+        for day in sorted(days):
+            await _recompute_day(db, day)
         await db.commit()
         db.row_factory = aiosqlite.Row
         cursor = await db.execute(
