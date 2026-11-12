@@ -1,14 +1,28 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from app.config import ENTRYPOINT_V07
 from app.main import app
-from app.services.decoder import ENTRYPOINT_V07_ABI, USER_OPERATION_EVENT_TOPIC0
+from app.services.decoder import ACCOUNT_DEPLOYED_TOPIC0, USER_OPERATION_EVENT_TOPIC0
 from app.services.pipeline import aggregate_daily_stats, store_user_op
 from httpx import ASGITransport, AsyncClient
 from web3 import Web3
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def _topic_address(address: str) -> str:
+    return "0x" + address.removeprefix("0x").lower().rjust(64, "0")
+
+
+@pytest.fixture()
+def real_logs() -> dict[str, object]:
+    """UserOperationEvent and AccountDeployed copied from Base mainnet block 56159665."""
+    return json.loads((FIXTURES / "base_56159665_logs.json").read_text())
 
 
 @pytest.fixture()
@@ -26,61 +40,55 @@ def build_user_operation_event_log() -> Callable[..., dict[str, object]]:
         actual_gas_used: int = 5678,
         tx_hash: str = "0x" + "44" * 32,
         block_number: int = 123,
-        log_index: int = 0,
-        timestamp: int = 1_710_000_000,
-        transaction_input: str | None = None,
-        user_op_index: int = 0,
-        factory: str | None = None,
+        log_index: int = 1,
+        removed: bool = False,
     ) -> dict[str, object]:
         encoded_data = w3.codec.encode(
-            ["address", "address", "uint256", "bool", "uint256", "uint256"],
-            [sender, paymaster, nonce, success, actual_gas_cost, actual_gas_used],
+            ["uint256", "bool", "uint256", "uint256"],
+            [nonce, success, actual_gas_cost, actual_gas_used],
         )
-        log: dict[str, object] = {
-            "address": "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
-            "topics": [USER_OPERATION_EVENT_TOPIC0, user_op_hash],
+        return {
+            "address": ENTRYPOINT_V07.lower(),
+            "topics": [
+                USER_OPERATION_EVENT_TOPIC0,
+                user_op_hash,
+                _topic_address(sender),
+                _topic_address(paymaster),
+            ],
             "data": "0x" + encoded_data.hex(),
             "transactionHash": tx_hash,
             "blockNumber": hex(block_number),
             "logIndex": hex(log_index),
-            "timestamp": hex(timestamp),
+            "removed": removed,
         }
-        if transaction_input is not None:
-            log["transactionInput"] = transaction_input
-            log["userOpIndex"] = user_op_index
-        if factory is not None:
-            log["factory"] = factory
-        return log
 
     return _build
 
 
 @pytest.fixture()
-def build_handle_ops_input() -> Callable[..., str]:
+def build_account_deployed_log() -> Callable[..., dict[str, object]]:
     w3 = Web3()
-    contract = w3.eth.contract(abi=ENTRYPOINT_V07_ABI)
 
     def _build(
         *,
+        user_op_hash: str = "0x" + "11" * 32,
         sender: str = "0x" + "22" * 20,
-        nonce: int = 7,
         factory: str = "0x" + "55" * 20,
-        paymaster: str = "0x" + "33" * 20,
-        call_data: bytes = bytes.fromhex("deadbeef"),
-        beneficiary: str = "0x" + "66" * 20,
-    ) -> str:
-        op = (
-            sender,
-            nonce,
-            bytes.fromhex(factory.removeprefix("0x") + "aa55"),
-            call_data,
-            bytes.fromhex("00" * 32),
-            21_000,
-            bytes.fromhex("11" * 32),
-            bytes.fromhex(paymaster.removeprefix("0x") + "bb66"),
-            bytes.fromhex("99" * 65),
-        )
-        return contract.functions.handleOps([op], beneficiary)._encode_transaction_data()
+        paymaster: str = "0x" + "00" * 20,
+        tx_hash: str = "0x" + "44" * 32,
+        block_number: int = 123,
+        log_index: int = 0,
+    ) -> dict[str, object]:
+        encoded_data = w3.codec.encode(["address", "address"], [factory, paymaster])
+        return {
+            "address": ENTRYPOINT_V07.lower(),
+            "topics": [ACCOUNT_DEPLOYED_TOPIC0, user_op_hash, _topic_address(sender)],
+            "data": "0x" + encoded_data.hex(),
+            "transactionHash": tx_hash,
+            "blockNumber": hex(block_number),
+            "logIndex": hex(log_index),
+            "removed": False,
+        }
 
     return _build
 
